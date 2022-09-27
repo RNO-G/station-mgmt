@@ -1,0 +1,6 @@
+This repository has various scripts to help interact with stations remotely. 
+
+Some of these may require that the environment variable RNO_G_PASSWORD is set  (obviously that won't be available in this repository).  
+
+
+

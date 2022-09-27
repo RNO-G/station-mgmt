@@ -1,0 +1,72 @@
+# This file contains useful directives to have in your ~/.ssh/config
+# Many of these are most useful with having set up key auth 
+# Note that the hostname and port for the Greenland server are redacted here, you'll have to fill it in obviously 
+
+
+HOST *
+# don't disconnected as often
+  ServerAliveInterval 20
+  KeepAlive  yes
+# Can't remember if this is needed or not for any of the computers, but I had it in my config
+  PubkeyAcceptedKeyTypes +ssh-rsa
+# This sets up shared control connections, which will help in some cases to reduce number of connectsion
+  ControlMaster auto
+  ControlPath ~/.ssh/sockets/%C
+  ControlPersist 600
+
+
+# This is the RNO-G server in Greenland 
+# We have redacted the hostname and port, but they can be found in the wiki 
+Host rno-g-gl 
+HostName {REDACTED}
+Port {REDACTED}
+LocalForward 30000 localhost:3000 # forward Greenland grafana to localhost:30000 
+LocalForward 17770 localhost:1777 # forward Greenland LORA DB dump to localhost:3000 
+LocalForward 10680 localhost:80   # Forward Greenland HTTP to localhost:10680
+
+# This is the flight tracker (and GPS base station) pi in greenland
+Host rno-g-pi 
+HostName 192.168.99.52
+ProxyCommand ssh -qAx rno-g-gl-W %h:22 
+user rno-g
+LocalForward 1090 localhost:80 # forward Flight tracking interface to localhost:1090 
+
+
+# below are all the stations, available by their name or statoin number
+
+Host amaroq station21 s21 
+HostName amaroq
+user rno-g 
+ProxyCommand ssh -qAx rno-g-gl -W %h:22 
+
+Host avinngaq station22 s22 
+HostName avinngaq
+user rno-g 
+ProxyCommand ssh -qAx rno-g-gl -W %h:22 
+
+Host ukaleq  station13 s13 
+HostName ukaleq
+user rno-g 
+ProxyCommand ssh -qAx rno-g-gl -W %h:22 
+
+Host qappik station24 s24
+HostName qappik
+user rno-g 
+ProxyCommand ssh -qAx rno-g-gl -W %h:22 
+
+Host ukaliatsiaq station23 s23 
+HostName ukaliatsiaq
+user rno-g 
+ProxyCommand ssh -qAx rno-g-gl -W %h:22 
+
+Host nanoq station11 s11
+HostName nanoq
+user rno-g 
+ProxyCommand ssh -qAx rno-g-gl -W %h:22 
+
+Host terianniaq station12 s12
+HostName terianniaq
+user rno-g 
+ProxyCommand ssh -qAx rno-g-gl -W %h:22 
+
+

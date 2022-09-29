@@ -1,7 +1,14 @@
-#! /bin/sh
+#! /bin/bash
 
 dest=`mktemp`-$1
 dest_check=`mktemp`
+
+if [ -z $1 ] ; 
+then 
+  echo "Usage: ./acq_edit.sh host"
+  exit 1 
+fi 
+
 scp $1:/rno-g/cfg/acq.cfg $dest 
 
 #make a copy so we can see if changed

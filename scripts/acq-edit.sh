@@ -17,15 +17,23 @@ cp $dest $dest_check
 #default to everyone's preferred editor if EDITOR is not dfined
 edit=${EDITOR:-vim} 
 
+do_edit=1
+
+
+
+while [ $do_edit -eq 1 ]
+do
+
 
 $edit $dest 
 diff $dest $dest_check  
 changed=$? 
+do_edit=0
 
 
 if [ $changed  -ne 0 ] ; then 
-  echo "Are you sure you want to upload your config to $1? (y/N) "
-  read -p "(y/N) " -r
+  echo "Are you sure you want to upload your config to $1? (y/N/e) "
+  read -p "(y/N/e) " -r
   echo 
   if [[ $REPLY =~ ^[Yy]$ ]] 
   then
@@ -47,10 +55,15 @@ if [ $changed  -ne 0 ] ; then
       echo "Using name $outname"
       scp $dest $1:/rno-g/cfg/acq.cfg.once/$outname
     fi 
+  elif [[ $REPLY =~ ^[Ee]$ ]]
+  then 
+      do_edit=1
   fi
 else 
   echo "no change!" 
 fi 
+
+done
 
 rm -f $dest $dest_check 
 

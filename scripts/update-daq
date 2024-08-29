@@ -1,0 +1,114 @@
+#! /usr/bin/env python3
+
+import sys
+import tempfile
+import os
+
+#usage
+#  update-daq.py [-ys] host  repo0[[[:branch=default]/target=default]/target2=default2]
+
+# example:   update-daq -y amaroq librno-g:feature/install-daq  stationrc
+
+
+
+confirm = True  # require confirmation
+sudo = False    # ask for sudo at beginning
+host = None
+remote_name = ".remote-daq-update.sh"
+repos = []
+
+
+
+#git recipes
+def get_default_branch(repo : str):
+    if repo == "radiant-python":
+        return "summit-branch"
+
+    if repo in ("stationrc","micromini-firmware"):
+        return "main"
+
+    return "master"
+
+
+
+#targets
+
+def get_default_targets(repo : str):
+
+    if repo == "librno-g":
+        return ["install-daq"]
+
+    if repo in ("stationrc","radiant-python","rnog_gps"):
+        return []
+
+    if repo in ("micromini-firmware","control-uC"):
+        return ["client"]
+
+    return ["install"]
+
+
+for arg in sys.argv[1:]:
+    if arg=="-y":
+        confirm = False
+    elif arg=="-s":
+        sudo = True
+    elif host==None:
+        host = arg
+    else:
+        split_slashes = arg.split("/")
+        assert split_slashes[0] != ''
+        split_colons = split_slashes[0].split(":")
+        assert(len(split_colons)<3)
+        assert(split_colons[0] != '')
+        name = split_colons[0]
+        branch = get_default_branch(name) if len(split_colons) == 1 else split_colons[1]
+        targets = get_default_targets(name) if len(split_slashes) == 1 else split_slashes[1:]
+        if len(targets) > 0 and targets[0] == 'None':
+            targets = []
+
+        repos.append({"name": name, "branch": branch, "targets": targets})
+
+assert host != None
+assert len(repos)
+
+script = (R"""#! /bin/sh
+#THIS SCRIPT WAS GENERATED AS PART OF A REMOTE DAQ UPDATE
+#IT MIGHT BE OVERWRITTEN WITHOUT WARNING
+
+cat /STATION_ID
+""")
+
+if sudo:
+    script+="#get sudo privileges at beginning\nsudo hostname\n"
+else:
+    script+=("hostname\n")
+
+for repo in repos:
+
+    script+=("\n#---\n#%s\n#---\n"%(repo['name']))
+    script+=("cd /home/rno-g/%s\n" % (repo['name']))
+    script+=("echo Handling %s\n" % (repo['name']))
+    script+=("git checkout %s\ngit pull origin %s\n"% (repo['branch'], repo['branch']))
+    for target in repo['targets']:
+        script+=("make %s\n" %(target))
+
+script += "\n\necho 'Done!'\n\n"
+if confirm:
+    print("We will send the following script to '%s': " % (host))
+    print(script)
+    answer = input("Ok? [y/N]").lower()
+
+    if answer != "y":
+        sys.exit(1)
+
+
+
+with tempfile.NamedTemporaryFile(delete_on_close=False) as tmp:
+    tmp.write(script.encode())
+    tmp.close()
+    os.system("ssh -T %s < %s" % (host, tmp.name))
+
+
+
+
+

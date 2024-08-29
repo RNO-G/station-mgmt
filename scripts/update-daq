@@ -5,7 +5,7 @@ import tempfile
 import os
 
 #usage
-#  update-daq.py [-ys] host  repo0[[[:branch=default]/target=default]/target2=default2]
+#  update-daq [-ys] host  repo0[[[:branch=default]/target=default]/target2=default2]
 
 # example:   update-daq -y amaroq librno-g:feature/install-daq  stationrc
 
@@ -14,9 +14,23 @@ import os
 confirm = True  # require confirmation
 sudo = False    # ask for sudo at beginning
 host = None
-remote_name = ".remote-daq-update.sh"
+just_print_defaults = False
 repos = []
 
+
+def usage():
+    print("update-daq [-Dyhs] host repo[[[:branch]/make-target0]/make-target1...]  [additional repos] ")
+    print("  -y  yolo mode (no confirmation)")
+    print("  -s  ask for sudo")
+    print("  -h  useless help prompt")
+    print("  -D  just list defaults for the repos rather than doing anything else. (host not taken in this case)\n")
+    print("    host something known to ssh\n")
+    print("    can list as many repos as you want, first repo name, then optionally a branch if not using the default branch after a colon, then optionally a slash separated list of make targets")
+    print("    None is a special make target that doesn't run make (e.g. if there is no Makefile...)")
+    print()
+    print("    Examples: ")
+    print("    update-daq nanoq librno-g rno-g-ice-software  # update librno-g, rno-g-ice-software on nanoq with default branches, default install targets")
+    print("    update-daq -y amaroq librno-g rno-g-ice-software:devel/install/cfg-install  # devel branch of rno-g-ice-sotware, run both install and cfg-install targets for rno-g-ice-sftware, no confirmation")
 
 
 #git recipes
@@ -28,8 +42,6 @@ def get_default_branch(repo : str):
         return "main"
 
     return "master"
-
-
 
 #targets
 
@@ -52,29 +64,42 @@ for arg in sys.argv[1:]:
         confirm = False
     elif arg=="-s":
         sudo = True
-    elif host==None:
+    elif arg=="-h":
+        usage()
+        sys.exit(0)
+    elif arg == '-D':
+        just_print_defaults = True
+    elif host==None and not just_print_defaults:
         host = arg
     else:
         split_slashes = arg.split("/")
-        assert split_slashes[0] != ''
+        if (split_slashes[0] == ''):
+            print("Empty repo")
+            sys.exit(1)
         split_colons = split_slashes[0].split(":")
-        assert(len(split_colons)<3)
-        assert(split_colons[0] != '')
+        if len(split_colons) > 2 or split_colons[0] == '':
+            print("Bad repo:branch specification")
+            sys.exit(1)
         name = split_colons[0]
-        branch = get_default_branch(name) if len(split_colons) == 1 else split_colons[1]
-        targets = get_default_targets(name) if len(split_slashes) == 1 else split_slashes[1:]
-        if len(targets) > 0 and targets[0] == 'None':
-            targets = []
+        if just_print_defaults:
+            print("[%s]\n  default-branch: %s\n  default-targets: %s\n\n" % (name, get_default_branch(name), get_default_targets(name)))
+        else:
+            branch = get_default_branch(name) if len(split_colons) == 1 else split_colons[1]
+            targets = get_default_targets(name) if len(split_slashes) == 1 else split_slashes[1:]
+            if len(targets) > 0 and targets[0] == 'None':
+                targets = []
 
-        repos.append({"name": name, "branch": branch, "targets": targets})
+            repos.append({"name": name, "branch": branch, "targets": targets})
 
-assert host != None
-assert len(repos)
+
+if just_print_defaults:
+    sys.exit(0)
+
+if host == None or len(repos) == 0:
+    usage()
+    sys.exit(1)
 
 script = (R"""#! /bin/sh
-#THIS SCRIPT WAS GENERATED AS PART OF A REMOTE DAQ UPDATE
-#IT MIGHT BE OVERWRITTEN WITHOUT WARNING
-
 cat /STATION_ID
 """)
 
@@ -102,13 +127,9 @@ if confirm:
         sys.exit(1)
 
 
-
 with tempfile.NamedTemporaryFile(delete_on_close=False) as tmp:
     tmp.write(script.encode())
     tmp.close()
     os.system("ssh -T %s < %s" % (host, tmp.name))
-
-
-
 
 

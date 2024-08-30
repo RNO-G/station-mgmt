@@ -5,7 +5,7 @@ import tempfile
 import os
 
 #usage
-#  update-daq [-ys] host  repo0[[[:branch=default]/target=default]/target2=default2]
+#  update-daq [-ys] host[,host2,..]  repo0[[[:branch=default]/target=default]/target2=default2]
 
 # example:   update-daq -y amaroq librno-g:feature/install-daq  stationrc
 
@@ -20,18 +20,21 @@ repos = []
 all_hosts=['amaroq','nanoq','avinngaq','terianniaq','ukaliatsiaq','ukaleq','qappik','tuttu']
 
 def usage():
-    print("update-daq [-Dyhs] host repo[[[:branch]/make-target0]/make-target1...]  [additional repos] ")
+    print("update-daq [-Dyhs] host[,host2,..] repo[[[:branch]/make-target0]/make-target1...]  [additional repos] ")
     print("  -y  yolo mode (no confirmation)")
     print("  -s  ask for sudo")
     print("  -h  useless help prompt")
     print("  -D  just list defaults for the repos rather than doing anything else. (host not taken in this case)\n")
-    print("    host something known to ssh\n")
+    print("    host something known to ssh, and can be comma separated for multiple hosts (or use 'all' for all known Greenland hosts)\n")
     print("    can list as many repos as you want, first repo name, then optionally a branch if not using the default branch after a colon, then optionally a slash separated list of make targets")
     print("    None is a special make target that doesn't run make (e.g. if there is no Makefile...)")
     print()
     print("    Examples: ")
     print("    update-daq nanoq librno-g rno-g-ice-software  # update librno-g, rno-g-ice-software on nanoq with default branches, default install targets")
     print("    update-daq -y amaroq librno-g rno-g-ice-software:devel/install/cfg-install  # devel branch of rno-g-ice-sotware, run both install and cfg-install targets for rno-g-ice-sftware, no confirmation")
+    print("    update-daq all stationrc # update stationrc on all stations")
+    print("    update-daq all stationrc/None # update stationrc on all stations with explicit no make target (same as above since it's the default)")
+    print("    update-daq -s rno-g-BBB-software # update rno-g-BBB-sofwtare with sudo privileges")
 
 
 #git recipes

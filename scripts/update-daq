@@ -12,7 +12,7 @@ import os
 
 
 confirm = True  # require confirmation
-sudo = False    # ask for sudo at beginning
+sudo = False    # ask for sudo 
 host = None
 just_print_defaults = False
 repos = []
@@ -20,7 +20,7 @@ repos = []
 all_hosts=['amaroq','nanoq','avinngaq','terianniaq','ukaliatsiaq','ukaleq','qappik','tuttu']
 
 def usage():
-    print("update-daq [-Dyhs] host[,host2,..] repo[[[:branch]/make-target0]/make-target1...]  [additional repos] ")
+    print("update-daq [-Dyhs] host[,host2,..] repo[[[:branch]/[^]make-target0]/[^]make-target1...]  [additional repos] ")
     print("  -y  yolo mode (no confirmation)")
     print("  -s  ask for sudo")
     print("  -h  useless help prompt")
@@ -28,6 +28,7 @@ def usage():
     print("    host something known to ssh, and can be comma separated for multiple hosts (or use 'all' for all known Greenland hosts)\n")
     print("    can list as many repos as you want, first repo name, then optionally a branch if not using the default branch after a colon, then optionally a slash separated list of make targets")
     print("    None is a special make target that doesn't run make (e.g. if there is no Makefile...)")
+    print("    targets prepended with ^ will be called with sudo if the -s flag is passed")
     print()
     print("    Examples: ")
     print("    update-daq nanoq librno-g rno-g-ice-software  # update librno-g, rno-g-ice-software on nanoq with default branches, default install targets")
@@ -35,6 +36,7 @@ def usage():
     print("    update-daq all stationrc # update stationrc on all stations")
     print("    update-daq all stationrc/None # update stationrc on all stations with explicit no make target (same as above since it's the default)")
     print("    update-daq -s amaroq rno-g-BBB-software # update rno-g-BBB-software on amaroq with sudo privileges")
+    print("    update-daq -s amaroq rno-g-BBB-software/^install # update rno-g-BBB-software on amaroq with sudo privilege with explicit sudo target (same as above since it's the default)")
 
 
 #git recipes
@@ -59,6 +61,9 @@ def get_default_targets(repo : str):
 
     if repo in ("micromini-firmware","control-uC"):
         return ["client"]
+
+    if repo == "rno-g-BBB-software":
+        return ['^install']
 
     return ["install"]
 
@@ -113,7 +118,7 @@ cat /STATION_ID
 """)
 
 if sudo:
-    script+="#get sudo privileges at beginning\nsudo hostname\n"
+    script+="#get sudo privileges at beginning, since that's maybe slightly less annoying (unless they expire)\nsudo hostname\n"
 else:
     script+=("hostname\n")
 
@@ -124,6 +129,10 @@ for repo in repos:
     script+=("echo Handling %s\n" % (repo['name']))
     script+=("git checkout %s\ngit pull origin %s\n"% (repo['branch'], repo['branch']))
     for target in repo['targets']:
+        if target[0]=='^':
+            target=target[1:]
+            if sudo:
+                script+="sudo "
         script+=("make %s\n" %(target))
 
 script += "\n\necho 'Done!'\n\n"

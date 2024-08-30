@@ -34,7 +34,7 @@ def usage():
     print("    update-daq -y amaroq librno-g rno-g-ice-software:devel/install/cfg-install  # devel branch of rno-g-ice-sotware, run both install and cfg-install targets for rno-g-ice-sftware, no confirmation")
     print("    update-daq all stationrc # update stationrc on all stations")
     print("    update-daq all stationrc/None # update stationrc on all stations with explicit no make target (same as above since it's the default)")
-    print("    update-daq -s rno-g-BBB-software # update rno-g-BBB-sofwtare with sudo privileges")
+    print("    update-daq -s amaroq rno-g-BBB-software # update rno-g-BBB-software on amaroq with sudo privileges")
 
 
 #git recipes

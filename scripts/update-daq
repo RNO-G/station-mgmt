@@ -17,6 +17,7 @@ host = None
 just_print_defaults = False
 repos = []
 
+all_hosts=['amaroq','nanoq','avinngaq','terianniaq','ukaliatsiaq','ukaleq','qappik','tuttu']
 
 def usage():
     print("update-daq [-Dyhs] host repo[[[:branch]/make-target0]/make-target1...]  [additional repos] ")
@@ -99,6 +100,11 @@ if host == None or len(repos) == 0:
     usage()
     sys.exit(1)
 
+hosts = host.split(',')
+
+if len(hosts) == 1 and hosts[0].lower() == 'all':
+    hosts = all_hosts
+
 script = (R"""#! /bin/sh
 cat /STATION_ID
 """)
@@ -119,9 +125,9 @@ for repo in repos:
 
 script += "\n\necho 'Done!'\n\n"
 if confirm:
-    print("We will send the following script to '%s': " % (host))
+    print("We will send the following script to '%s': " % (str(hosts)))
     print(script)
-    answer = input("Ok? [y/N]").lower()
+    answer = input("Ok? [y/N] ").lower()
 
     if answer != "y":
         sys.exit(1)
@@ -130,6 +136,7 @@ if confirm:
 with tempfile.NamedTemporaryFile(delete_on_close=False) as tmp:
     tmp.write(script.encode())
     tmp.close()
-    os.system("ssh -T %s < %s" % (host, tmp.name))
+    for h in hosts:
+        os.system("ssh -T %s < %s" % (h, tmp.name))
 
 

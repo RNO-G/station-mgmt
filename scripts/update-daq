@@ -5,7 +5,7 @@ import tempfile
 import os
 
 #usage
-#  update-daq [-ys] host[,host2,..]  repo0[[[:branch=default]/target=default]/target2=default2]
+#  update-daq [-yschD] host[,host2,..]  repo0[[[:branch=default]/target=default]/target2=default2]
 
 # example:   update-daq -y amaroq librno-g:feature/install-daq  stationrc
 
@@ -14,16 +14,18 @@ import os
 confirm = True  # require confirmation
 sudo = False    # ask for sudo 
 host = None
+copy = False
 just_print_defaults = False
 repos = []
 
 all_hosts=['amaroq','nanoq','avinngaq','terianniaq','ukaliatsiaq','ukaleq','qappik','tuttu']
 
 def usage():
-    print("update-daq [-Dyhs] host[,host2,..] repo[[[:branch]/[^]make-target0]/[^]make-target1...]  [additional repos] ")
+    print("update-daq [-Dyhsc] host[,host2,..] repo[[[:branch]/[^]make-target0]/[^]make-target1...]  [additional repos] ")
     print("  -y  yolo mode (no confirmation)")
     print("  -s  ask for sudo")
     print("  -h  useless help prompt")
+    print("  -c  copy script, then run it, then delete it, rather than running it via pipe")
     print("  -D  just list defaults for the repos rather than doing anything else. (host not taken in this case)\n")
     print("    host something known to ssh, and can be comma separated for multiple hosts (or use 'all' for all known Greenland hosts)\n")
     print("    can list as many repos as you want, first repo name, then optionally a branch if not using the default branch after a colon, then optionally a slash separated list of make targets")
@@ -73,6 +75,8 @@ for arg in sys.argv[1:]:
         confirm = False
     elif arg=="-s":
         sudo = True
+    elif arg=="-c":
+        copy = True
     elif arg=="-h":
         usage()
         sys.exit(0)
@@ -136,8 +140,9 @@ for repo in repos:
         script+=("make %s\n" %(target))
 
 script += "\n\necho 'Done!'\n\n"
+
 if confirm:
-    print("We will send the following script to '%s': " % (str(hosts)))
+    print("We will send the following script via %s to '%s': " % ("copy" if copy else "pipe", str(hosts)))
     print(script)
     answer = input("Ok? [y/N] ").lower()
 
@@ -149,6 +154,11 @@ with tempfile.NamedTemporaryFile(delete_on_close=False) as tmp:
     tmp.write(script.encode())
     tmp.close()
     for h in hosts:
-        os.system("ssh -T %s < %s" % (h, tmp.name))
+        if copy:
+            print(tmp.name)
+            os.system("chmod +x %s" % (tmp.name))
+            os.system("scp %s %s:.update_daq.sh && ssh -t %s \"./.update_daq.sh && rm ./.update_daq.sh\"" % (tmp.name,h, h))
+        else:
+            os.system("ssh -T %s < %s" % (h, tmp.name))
 
 

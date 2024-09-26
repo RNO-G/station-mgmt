@@ -27,7 +27,7 @@ LocalForward 10680 localhost:80   # Forward Greenland HTTP to localhost:10680
 # This is the flight tracker (and GPS base station) pi in greenland
 Host rno-g-pi
 HostName 192.168.99.52
-ProxyCommand ssh -qAx rno-g-gl-W %h:22
+ProxyCommand ssh -qAx rno-g-gl -W %h:22
 user rno-g
 LocalForward 1090 localhost:80 # forward Flight tracking interface to localhost:1090
 
